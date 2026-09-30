@@ -32,6 +32,17 @@
             #landscape-prompt { display: none !important; }
         }
 
+#game-board-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    max-height: calc(100dvh - 120px);
+    max-width: calc(100dvh - 120px);
+    aspect-ratio: 1 / 1;
+    width: 100%;
+}
+
+        
         /* TABLERO GIGANTE: Casillas de 90px -> Tablero de 540x540 para aprovechar la pantalla */
         #game-board { width: 540px; height: 540px; background-color: #e2e8f0; border: 4px solid #475569; border-radius: 12px; position: relative; background-image: linear-gradient(#cbd5e1 2px, transparent 2px), linear-gradient(90deg, #cbd5e1 2px, transparent 2px); background-size: 90px 90px; box-shadow: 0 15px 35px rgba(0,0,0,0.15); overflow: hidden; }
 .entity { width: 90px; height: 90px; position: absolute; display: flex; justify-content: center; align-items: center; transition: left 0.4s ease, top 0.4s ease, transform 0.4s ease, opacity 0.3s ease; }
