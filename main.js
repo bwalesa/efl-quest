@@ -36,11 +36,10 @@ window.onload = () => {
     missionData.obstacles.forEach(obs => {
         const wall = document.createElement('div');
         wall.className = 'entity'; 
-        // Forzamos 92px y un leve desplazamiento negativo para eliminar cualquier línea de fondo filtrada
-        wall.style.width = '92px';
-        wall.style.height = '92px';
-        wall.style.left = `${(obs.x * 90) - 1}px`;
-        wall.style.top = `${(obs.y * 90) - 1}px`;
+        wall.style.width = '90px';
+        wall.style.height = '90px';
+        wall.style.left = `${obs.x * 90}px`;
+        wall.style.top = `${obs.y * 90}px`;
         wall.innerHTML = SVG_WALL;
         uiElements.board.appendChild(wall);
     });
