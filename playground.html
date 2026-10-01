@@ -2,27 +2,12 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>EFL Mobile Quest</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-       body { 
-    background-color: #0f172a; 
-    font-family: 'Inter', system-ui, sans-serif; 
-    margin: 0; 
-    display: flex; 
-    justify-content: center; 
-    align-items: center; 
-    height: 100dvh; 
-    width: 100vw;
-    color: #334155; 
-    overflow: hidden;
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: env(safe-area-inset-bottom);
-    padding-left: env(safe-area-inset-left);
-    padding-right: env(safe-area-inset-right);
-    box-sizing: border-box;
-}
+   <style>
+        /* 1. FONDO Y BLOQUEO TOTAL DE SCROLL */
+        body { background-color: #0f172a; font-family: 'Inter', system-ui, sans-serif; margin: 0; padding: 0; width: 100vw; height: 100vh; overflow: hidden; touch-action: none; }
         
         @media screen and (orientation: portrait) {
             #app-content { display: none !important; }
@@ -32,29 +17,50 @@
             #landscape-prompt { display: none !important; }
         }
 
-#game-board-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    max-height: calc(100dvh - 120px);
-    max-width: calc(100dvh - 120px);
-    aspect-ratio: 1 / 1;
-    width: 100%;
-}
-
+        /* 2. ESTRUCTURA PRINCIPAL FLUIDA */
+        #app-content { width: 100vw !important; height: 100vh !important; max-width: 100vw !important; overflow: hidden !important; display: flex; flex-direction: row; }
         
-        /* TABLERO GIGANTE: Casillas de 90px -> Tablero de 540x540 para aprovechar la pantalla */
-        #game-board { width: 540px; height: 540px; background-color: #e2e8f0; border: 4px solid #475569; border-radius: 12px; position: relative; background-image: linear-gradient(#cbd5e1 2px, transparent 2px), linear-gradient(90deg, #cbd5e1 2px, transparent 2px); background-size: 90px 90px; box-shadow: 0 15px 35px rgba(0,0,0,0.15); overflow: hidden; }
-.entity { width: 90px; height: 90px; max-width: 100%; max-height: 100%; position: absolute; display: flex; justify-content: center; align-items: center; transition: left 0.4s ease, top 0.4s ease, transform 0.4s ease, opacity 0.3s ease; }
-#player { z-index: 40; width: 90px; height: 90px; } /* <-- Asegúrate de que tenga 90px */
+        /* 3. COLUMNA IZQUIERDA */
+        #app-content > div.flex-1 { flex: 1; min-width: 0 !important; overflow: hidden !important; display: flex; flex-direction: column; position: relative; }
+        
+        #game-board-container { flex: 1; display: flex; justify-content: center; align-items: center; width: 100%; height: 100%; overflow: hidden; }
+
+        /* 4. EL TABLERO (Con position: relative para que los objetos no se escapen) */
+        #game-board { 
+            box-sizing: content-box !important; /* AQUÍ ESTÁ LA MAGIA QUE ARREGLA EL MURO */
+            width: 540px; 
+            height: 540px; 
+            background-color: #e2e8f0; 
+            border: 4px solid #475569; 
+            border-radius: 12px; 
+            background-image: linear-gradient(#cbd5e1 2px, transparent 2px), linear-gradient(90deg, #cbd5e1 2px, transparent 2px); 
+            background-size: 90px 90px; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15); 
+            flex-shrink: 0; 
+            transform-origin: center center;
+        }
+
+        /* 5. ESTO SE HABÍA BORRADO: Devuelve el tamaño y posición a los objetos */
+        .entity { width: 90px; height: 90px; position: absolute; display: flex; justify-content: center; align-items: center; transition: left 0.4s ease, top 0.4s ease, transform 0.4s ease, opacity 0.3s ease; }
+        #player { z-index: 40; width: 90px; height: 90px; }
         
         @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
         .animate-float { animation: float 2s ease-in-out infinite; }
         .crash { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; border-color: #ef4444 !important; }
         @keyframes shake { 10%, 90% { transform: translate3d(-3px, 0, 0); } 20%, 80% { transform: translate3d(6px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-8px, 0, 0); } 40%, 60% { transform: translate3d(8px, 0, 0); } }
         
+        /* 6. PROTECCIÓN DEL PANEL DERECHO */
+        #controls-panel { width: 320px !important; min-width: 320px !important; flex-shrink: 0; z-index: 50; }
+        
         .cmd-item { cursor: pointer; transition: all 0.2s; }
         .cmd-item:hover { transform: scale(0.95) translateY(-2px); }
+
+
+
+        /* ACHICAR TEXTOS PARA DARLE PROTAGONISMO AL TABLERO */
+        #level-title { font-size: 1rem !important; line-height: 1.2 !important; }
+        #goal-text { font-size: 0.85rem !important; padding: 8px !important; bottom: 8px !important; }
+        .absolute.top-4 { top: 8px !important; } /* Sube el título pegándolo al borde superior */
     </style>
 </head>
 <body>
@@ -67,16 +73,19 @@
 
     <div id="app-content" class="flex flex-row w-full h-full max-w-[1250px] bg-slate-50 shadow-2xl relative items-center">
         
-        <!-- COLUMNA IZQUIERDA: Tablero Gigante -->
-        <div class="flex-1 bg-slate-100 border-r border-slate-200 flex flex-col justify-center items-center p-4 relative h-full">
-            <div class="absolute top-4 left-6 right-6 flex justify-between items-center">
-                <h1 id="level-title" class="text-xl md:text-2xl font-black text-indigo-900 tracking-tight leading-tight">Loading...</h1>
-                <div id="inventory-display" class="bg-amber-100 border border-amber-300 text-amber-800 px-3 py-1.5 rounded-lg text-xs font-bold hidden shadow-sm uppercase tracking-wide">
+       <!-- COLUMNA IZQUIERDA: Tablero Gigante -->
+        <div class="flex-1 bg-slate-100 border-r border-slate-200 flex flex-col p-4 relative h-full min-w-0">
+            
+            <!-- Título (Ahora respeta el espacio, ya NO es absolute) -->
+            <div class="flex justify-between items-center mb-2 shrink-0">
+                <h1 id="level-title" class="text-base md:text-lg font-black text-indigo-900 tracking-tight leading-tight">Loading...</h1>
+                <div id="inventory-display" class="bg-amber-100 border border-amber-300 text-amber-800 px-3 py-1 rounded-lg text-xs font-bold hidden shadow-sm uppercase tracking-wide">
                     🎒 <span id="inv-item">Empty</span>
                 </div>
             </div>
 
-            <div id="game-board-container" class="relative flex justify-center items-center my-auto">
+            <!-- Contenedor del Tablero (Se ajusta al espacio central seguro) -->
+            <div id="game-board-container" class="flex-1 relative flex justify-center items-center w-full overflow-hidden">
                 <div id="game-board">
                     <div id="player" class="entity z-40">
                         <svg viewBox="0 0 100 100" class="w-full h-full drop-shadow-lg">
@@ -88,33 +97,19 @@
                                 .p1-tracks { stroke-dasharray: 4 4; animation: track-move 0.5s linear infinite reverse; }
                                 .p1-eyes { animation: blink 4s infinite; transform-origin: 50% 30%; }
                             </style>
-                            <!-- Orugas (Fijas) -->
                             <rect x="15" y="10" width="16" height="80" rx="6" fill="#1e293b" stroke="#334155" stroke-width="2"/>
                             <rect x="69" y="10" width="16" height="80" rx="6" fill="#1e293b" stroke="#334155" stroke-width="2"/>
-                            <!-- Líneas de orugas animadas -->
                             <line x1="23" y1="15" x2="23" y2="85" stroke="#475569" stroke-width="8" class="p1-tracks"/>
                             <line x1="77" y1="15" x2="77" y2="85" stroke="#475569" stroke-width="8" class="p1-tracks"/>
-                            
-                            <!-- Cuerpo (Flotante) -->
                             <g class="p1-body">
-                                <!-- Haz de luz amarilla (Ahora sale desde atrás del visor) -->
                                 <polygon points="35,22 10,-10 90,-10 65,22" fill="#fef08a" opacity="0.25" class="animate-pulse"/>
-                                
-                                <!-- Sombra base -->
                                 <rect x="25" y="30" width="50" height="40" rx="8" fill="#1d4ed8"/>
-                                <!-- Chasis principal -->
                                 <rect x="25" y="25" width="50" height="40" rx="8" fill="#3b82f6" stroke="#2563eb" stroke-width="2"/>
-                                
-                                <!-- Visor delantero oscuro (Indica el frente) -->
                                 <rect x="30" y="20" width="40" height="14" rx="4" fill="#0f172a" stroke="#60a5fa" stroke-width="2"/>
-                                
-                                <!-- Ojos (Solo 2, con contorno oscuro) -->
                                 <g class="p1-eyes">
                                     <circle cx="42" cy="27" r="3.5" fill="#fcd34d" stroke="#b45309" stroke-width="1.5" class="animate-pulse"/>
                                     <circle cx="58" cy="27" r="3.5" fill="#fcd34d" stroke="#b45309" stroke-width="1.5" class="animate-pulse"/>
                                 </g>
-                                
-                                <!-- Detalles de espalda -->
                                 <line x1="40" y1="55" x2="60" y2="55" stroke="#1e3a8a" stroke-width="3" stroke-linecap="round"/>
                                 <line x1="45" y1="60" x2="55" y2="60" stroke="#1e3a8a" stroke-width="3" stroke-linecap="round"/>
                             </g>
@@ -123,8 +118,9 @@
                 </div>
             </div>
             
-            <div id="goal-text" class="absolute bottom-4 left-6 right-6 text-center text-base md:text-lg font-bold text-slate-700 bg-white p-3.5 rounded-xl border border-slate-200 shadow-md">
-    Goal: Loading...
+            <!-- Objetivo (Ahora respeta el espacio, ya NO es absolute) -->
+            <div id="goal-text" class="mt-2 text-center text-sm md:text-base font-bold text-slate-700 bg-white p-3 rounded-xl border border-slate-200 shadow-md shrink-0">
+                Goal: Loading...
             </div>
         </div>
 
@@ -163,28 +159,33 @@
             </div>
         </div>
 
-        <div id="unscramble-modal" class="absolute inset-0 bg-slate-900/95 z-[70] hidden flex-col items-center justify-center p-6 backdrop-blur-md">
-            <h2 class="text-3xl font-black text-white mb-2 text-center">ACTION REQUIRED</h2>
-            <p class="text-emerald-400 font-bold mb-8 text-center text-sm uppercase tracking-widest">Unscramble to Interact</p>
+        <div id="unscramble-modal" class="absolute inset-0 bg-slate-900/95 z-[70] hidden flex-col items-center justify-start overflow-y-auto p-4 backdrop-blur-md">
+            <!-- Contenedor interno que permite centrado flexible y scroll -->
+            <div class="w-full max-w-lg m-auto flex flex-col items-center py-4">
+                <h2 class="text-2xl font-black text-white mb-1 text-center">ACTION REQUIRED</h2>
+                <p class="text-emerald-400 font-bold mb-4 text-center text-xs uppercase tracking-widest">Unscramble to Interact</p>
 
-            <!-- CONTENEDOR DE LA BOMBA (Nativo en el HTML) -->
-            <div id="bomb-timer-container" class="w-full max-w-lg mb-6 bg-slate-800 p-4 rounded-xl border-2 border-red-500 hidden shadow-[0_0_15px_rgba(239,68,68,0.5)]">
-                <div class="flex justify-between items-center mb-2">
-                    <span class="text-red-400 font-black text-xl animate-pulse">🧨 DEFUSE THE BOMB!</span>
-                    <span id="bomb-countdown" class="text-white font-mono font-bold text-2xl"></span>
+                <!-- CONTENEDOR DE LA BOMBA -->
+                <div id="bomb-timer-container" class="w-full mb-3 bg-slate-800 p-3 rounded-xl border-2 border-red-500 hidden shadow-[0_0_15px_rgba(239,68,68,0.5)]">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-red-400 font-black text-sm animate-pulse">🧨 DEFUSE THE BOMB!</span>
+                        <span id="bomb-countdown" class="text-white font-mono font-bold text-xl"></span>
+                    </div>
+                    <div class="w-full h-3 bg-slate-900 rounded-full overflow-hidden relative">
+                        <div id="bomb-fuse" class="absolute left-0 top-0 h-full bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 transition-all duration-100 ease-linear" style="box-shadow: 0 0 10px #f59e0b; width: 100%;"></div>
+                    </div>
                 </div>
-                <div class="w-full h-4 bg-slate-900 rounded-full overflow-hidden relative">
-                    <div id="bomb-fuse" class="absolute left-0 top-0 h-full bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 transition-all duration-100 ease-linear" style="box-shadow: 0 0 10px #f59e0b; width: 100%;"></div>
+                
+                <!-- DROPZONE Y PALABRAS (Más compactos) -->
+                <div id="unscramble-dropzone" class="min-h-[50px] w-full bg-slate-800 border-2 border-dashed border-slate-500 rounded-xl p-2 flex flex-wrap gap-2 mb-4 items-center justify-center transition-all"></div>
+                <div id="unscramble-words" class="flex flex-wrap gap-2 w-full justify-center mb-4"></div>
+                <div id="unscramble-feedback" class="text-red-400 font-bold min-h-[20px] mb-4 text-center text-xs"></div>
+                
+                <!-- BOTONES (Reducidos en altura para no salir de pantalla) -->
+                <div class="flex gap-4 w-full max-w-xs shrink-0">
+                    <button onclick="resetUnscramble()" class="flex-1 py-2 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl transition-all">Reset</button>
+                    <button onclick="checkUnscramble()" class="flex-1 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl shadow-lg transition-all border-b-4 border-emerald-700 active:border-b-0 active:translate-y-1">Execute</button>
                 </div>
-            </div>
-            
-            <div id="unscramble-dropzone" class="min-h-[70px] w-full max-w-lg bg-slate-800 border-2 border-dashed border-slate-500 rounded-2xl p-4 flex flex-wrap gap-2 mb-6 items-center justify-center transition-all"></div>
-            <div id="unscramble-words" class="flex flex-wrap gap-3 w-full max-w-lg justify-center mb-8"></div>
-            <div id="unscramble-feedback" class="text-red-400 font-bold min-h-[24px] mb-6 text-center text-sm"></div>
-            
-            <div class="flex gap-4 w-full max-w-xs">
-                <button onclick="resetUnscramble()" class="flex-1 py-3 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl transition-all">Reset</button>
-                <button onclick="checkUnscramble()" class="flex-1 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl shadow-lg transition-all border-b-4 border-emerald-700 active:border-b-0 active:translate-y-1">Execute</button>
             </div>
         </div>
 
@@ -192,7 +193,7 @@
             <div class="text-6xl mb-4">🏆</div>
             <h2 class="text-4xl font-black text-emerald-600 mb-2">Well Done!</h2>
             <p class="text-sm font-bold text-slate-600 mb-8 text-center px-4">Mission completed.</p>
-            <button type="button" onclick="window.location.href='index.html'" class="bg-indigo-600 text-white text-lg font-black py-3 px-8 rounded-xl shadow-xl active:scale-95 transition-all">Next Mission ➔</button>
+            <button type="button" onclick="window.location.href='dashboard.html'" class="bg-indigo-600 text-white text-lg font-black py-3 px-8 rounded-xl shadow-xl active:scale-95 transition-all">Next Mission ➔</button>
         </div>
 
         <!-- PANEL DE MISIÓN FALLIDA -->
@@ -204,6 +205,32 @@
         </div>
 
     </div>
+
+
+
+<script>
+        function escalarTablero() {
+            const board = document.getElementById('game-board');
+            const container = document.getElementById('game-board-container');
+            if (!board || !container) return;
+            
+            // Usamos 570 en lugar de 540 para forzar un margen de seguridad.
+            // Así jamás chocará con el inventario ni el título.
+            const escala = Math.min(container.clientWidth / 570, container.clientHeight / 570, 1);
+            board.style.transform = `scale(${escala})`;
+        }
+
+        window.addEventListener('resize', escalarTablero);
+        window.addEventListener('load', escalarTablero);
+        setTimeout(escalarTablero, 100);
+    </script>
+
+
+
+
+
+
+
 
     <script src="database.js"></script>
     <script src="parser.js"></script>
