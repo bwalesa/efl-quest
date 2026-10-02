@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* 1. FONDO Y BLOQUEO TOTAL DE SCROLL */
-        body { background-color: #0f172a; font-family: 'Inter', system-ui, sans-serif; margin: 0; padding: 0; width: 100vw; height: 100vh; overflow: hidden; touch-action: none; }
+        body { background-color: #0f172a; font-family: 'Inter', system-ui, sans-serif; margin: 0; padding: 0; width: 100vw; height: 100dvh; overflow: hidden; touch-action: none; }
         
         @media screen and (orientation: portrait) {
             #app-content { display: none !important; }
@@ -18,7 +18,7 @@
         }
 
         /* 2. ESTRUCTURA PRINCIPAL FLUIDA */
-        #app-content { width: 100vw !important; height: 100vh !important; max-width: 100vw !important; overflow: hidden !important; display: flex; flex-direction: row; }
+        #app-content { width: 100vw !important; height: 100dvh !important; max-width: 100vw !important; overflow: hidden !important; display: flex; flex-direction: row; }
         
         /* 3. COLUMNA IZQUIERDA */
         #app-content > div.flex-1 { flex: 1; min-width: 0 !important; overflow: hidden !important; display: flex; flex-direction: column; position: relative; }
