@@ -16,7 +16,7 @@ let unscrambleAvailable = [];
 
 window.onload = () => {
     const savedConfig = localStorage.getItem('studentLevelConfig');
-    if (!savedConfig) { window.location.href = 'dashboard.html'; return; }
+    if (!savedConfig) { window.location.href = 'index.html'; return; }
     
     const config = JSON.parse(savedConfig); 
     const unitData = GAME_DATABASE.units[config.unit_id];

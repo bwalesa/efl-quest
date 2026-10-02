@@ -88,9 +88,20 @@
                 <div id="inv-item" class="flex flex-col gap-1"></div>
             </div>
 
-            <!-- Título (Flotante arriba al centro para que NO empuje al tablero) -->
-            <div class="absolute top-2 left-1/2 -translate-x-1/2 z-50 w-max max-w-[90%] text-center pointer-events-none">
-                <h1 id="level-title" class="text-sm md:text-base font-black text-indigo-900 tracking-tight leading-tight bg-white/90 px-4 py-1.5 rounded-full shadow-sm border border-slate-200">Loading...</h1>
+<!-- Barra superior flexible: Back a la izquierda y Título centrado -->
+            <div class="absolute top-2 left-3 right-3 z-50 flex items-center justify-between pointer-events-none">
+                <!-- Botón Back -->
+                <button onclick="confirmExit()" class="pointer-events-auto bg-white/90 hover:bg-white text-slate-700 font-bold px-3 py-1.5 rounded-full shadow-sm border border-slate-200 text-xs flex items-center gap-1 transition-all active:scale-95 cursor-pointer shrink-0">
+                    <span>←</span> Back
+                </button>
+
+                <!-- Título de la Unidad (Con truncate para evitar desbordes) -->
+                <div class="mx-2 flex-1 text-center pointer-events-none overflow-hidden px-2">
+                    <h1 id="level-title" class="text-xs md:text-sm font-black text-indigo-900 tracking-tight truncate bg-white/90 px-3 py-1.5 rounded-full shadow-sm border border-slate-200 inline-block max-w-full">Loading...</h1>
+                </div>
+
+                <!-- Espaciador invisible para mantener el título perfectamente centrado -->
+                <div class="w-[60px] shrink-0"></div>
             </div>
 
             <!-- Contenedor del Tablero -->
@@ -168,10 +179,39 @@
                 <button onclick="document.getElementById('warning-modal').classList.add('hidden')" class="px-6 py-3 bg-amber-400 hover:bg-amber-500 text-slate-900 font-black rounded-xl w-full transition-all shadow-md">Understood</button>
             </div>
         </div>
+        
+
+        <!-- MODAL DE ADVERTENCIA DE SALIDA -->
+        <div id="exit-modal" class="absolute inset-0 bg-slate-900/90 z-[110] hidden flex-col items-center justify-center p-6 backdrop-blur-sm">
+            <div class="bg-white p-6 rounded-3xl max-w-sm w-full text-center shadow-2xl border-4 border-indigo-400">
+                
+                <!-- Icono SVG Vectorizado de Salida -->
+                <div class="w-12 h-12 mx-auto mb-3 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center p-2.5 border border-indigo-100 shadow-inner">
+                    <svg class="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                    </svg>
+                </div>
+
+                <h3 class="text-lg font-black text-slate-800 mb-2">Leave Mission?</h3>
+                <p class="text-slate-600 font-medium text-xs mb-6">If you leave now, your current progress in this mission will be lost.</p>
+                <div class="flex gap-3">
+                    <button onclick="document.getElementById('exit-modal').classList.add('hidden'); document.getElementById('exit-modal').classList.remove('flex');" class="flex-1 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl transition-all text-sm cursor-pointer">Cancel</button>
+                    <button onclick="window.location.href='index.html'" class="flex-1 py-2.5 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl transition-all text-sm shadow-md cursor-pointer">Yes, Leave</button>
+                </div>
+            </div>
+        </div>
+
 
         <!-- MINIJUEGO DE PALABRAS -->
+        <!-- MINIJUEGO DE PALABRAS -->
         <div id="unscramble-modal" class="absolute inset-0 bg-slate-900/95 z-[70] hidden flex-col items-center justify-start overflow-y-auto p-4 backdrop-blur-md">
-            <div class="w-full max-w-lg m-auto flex flex-col items-center py-4">
+            <div class="w-full max-w-lg m-auto flex flex-col items-center py-4 relative">
+                
+                <!-- Botón Back para salir del minijuego -->
+                <button onclick="closeUnscrambleModal()" class="absolute left-0 top-0 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-3 py-1.5 rounded-xl border border-slate-700 text-xs flex items-center gap-1 transition-all active:scale-95 cursor-pointer">
+                    <span>←</span> Back
+                </button>
+
                 <h2 class="text-2xl font-black text-white mb-1 text-center">ACTION REQUIRED</h2>
                 <p class="text-emerald-400 font-bold mb-4 text-center text-xs uppercase tracking-widest">Unscramble to Interact</p>
 
@@ -190,17 +230,23 @@
                 <div id="unscramble-feedback" class="text-red-400 font-bold min-h-[20px] mb-4 text-center text-xs"></div>
                 
                 <div class="flex gap-4 w-full max-w-xs shrink-0">
-                    <button onclick="resetUnscramble()" class="flex-1 py-2 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl transition-all">Reset</button>
-                    <button onclick="checkUnscramble()" class="flex-1 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl shadow-lg transition-all border-b-4 border-emerald-700 active:border-b-0 active:translate-y-1">Execute</button>
+                    <button onclick="resetUnscramble()" class="flex-1 py-2 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl transition-all cursor-pointer">Reset</button>
+                    <button onclick="checkUnscramble()" class="flex-1 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl shadow-lg transition-all border-b-4 border-emerald-700 active:border-b-0 active:translate-y-1 cursor-pointer">Execute</button>
                 </div>
             </div>
         </div>
 
         <div id="overlay" class="hidden absolute inset-0 bg-white/95 backdrop-blur-sm z-[100] flex flex-col items-center justify-center rounded-lg">
-            <div class="text-6xl mb-4">🏆</div>
+            <!-- Icono Vectorizado de Trofeo -->
+            <div class="w-16 h-16 mx-auto mb-4 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center p-3.5 border border-emerald-100 shadow-inner">
+                <svg class="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 9H4.5a2.5 2.5 0 010-5H6m12 5h1.5a2.5 2.5 0 000-5H18M6 4h12v7a6 6 0 01-12 0V4zm6 11v3m-3 3h6"></path>
+                </svg>
+            </div>
+
             <h2 class="text-4xl font-black text-emerald-600 mb-2">Well Done!</h2>
             <p class="text-sm font-bold text-slate-600 mb-8 text-center px-4">Mission completed.</p>
-            <button type="button" onclick="window.location.href='index.html'" class="bg-indigo-600 text-white text-lg font-black py-3 px-8 rounded-xl shadow-xl active:scale-95 transition-all">Next Mission ➔</button>
+            <button type="button" onclick="window.location.href='index.html'" class="bg-indigo-600 text-white text-lg font-black py-3 px-8 rounded-xl shadow-xl active:scale-95 transition-all cursor-pointer">Next Mission ➔</button>
         </div>
 
         <!-- PANEL DE MISIÓN FALLIDA -->
@@ -215,6 +261,33 @@
 
     <!-- SCRIPT MATEMÁTICO FINAL -->
     <script>
+
+
+          function closeUnscrambleModal() {
+            // Detenemos el cronómetro de la bomba si estaba activo
+            if (window.unscrambleTimer) clearInterval(window.unscrambleTimer);
+            
+            // Limpiamos la mecha visual
+            const oldTimer = document.getElementById('bomb-timer-container');
+            if (oldTimer) oldTimer.remove();
+            
+            // Ocultamos el modal de unscramble
+            const modal = document.getElementById('unscramble-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+
+
+
+
+          function confirmExit() {
+            const modal = document.getElementById('exit-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+
         function escalarTablero() {
             const board = document.getElementById('game-board');
             if (!board) return;
