@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>EFL Mobile Quest</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 1. FONDO Y BLOQUEO TOTAL DE SCROLL */
+        body { background-color: #0f172a; font-family: 'Inter', system-ui, sans-serif; margin: 0; padding: 0; width: 100vw; height: 100vh; overflow: hidden; touch-action: none; }
+        
+        @media screen and (orientation: portrait) {
+            #app-content { display: none !important; }
+            #landscape-prompt { display: flex !important; }
+        }
+        @media screen and (orientation: landscape) {
+            #landscape-prompt { display: none !important; }
+        }
+
+        /* 2. ESTRUCTURA PRINCIPAL FLUIDA */
+        #app-content { width: 100vw !important; height: 100vh !important; max-width: 100vw !important; overflow: hidden !important; display: flex; flex-direction: row; }
+        
+        /* 3. COLUMNA IZQUIERDA */
+        #app-content > div.flex-1 { flex: 1; min-width: 0 !important; overflow: hidden !important; display: flex; flex-direction: column; position: relative; }
+        
+        #game-board-container { flex: 1; display: flex; justify-content: center; align-items: center; width: 100%; height: 100%; overflow: hidden; position: relative; }
+
+        /* 4. EL TABLERO (Anclaje absoluto al centro para jamás deformarse) */
+        #game-board { 
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            margin-top: -270px;
+            margin-left: -270px;
+            box-sizing: content-box !important; 
+            width: 540px; 
+            height: 540px; 
+            background-color: #e2e8f0; 
+            border: 4px solid #475569; 
+            border-radius: 12px; 
+            background-image: linear-gradient(#cbd5e1 2px, transparent 2px), linear-gradient(90deg, #cbd5e1 2px, transparent 2px); 
+            background-size: 90px 90px; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15); 
+            transform-origin: center center;
+        }
+
+        /* 5. ENTIDADES DEL JUEGO */
+        .entity { width: 90px; height: 90px; position: absolute; display: flex; justify-content: center; align-items: center; transition: left 0.4s ease, top 0.4s ease, transform 0.4s ease, opacity 0.3s ease; }
+        #player { z-index: 40; width: 90px; height: 90px; }
+        
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+        .animate-float { animation: float 2s ease-in-out infinite; }
+        
+        /* 6. ANIMACIÓN DE CHOQUE LIMPIA (Usa margin para no romper la escala matemática) */
+        .crash { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; border-color: #ef4444 !important; }
+        @keyframes shake { 
+            0%, 100% { margin-left: -270px; }
+            10%, 90% { margin-left: -273px; } 
+            20%, 80% { margin-left: -264px; } 
+            30%, 50%, 70% { margin-left: -278px; } 
+            40%, 60% { margin-left: -262px; } 
+        }
+        
+        /* 7. PROTECCIÓN DEL PANEL DERECHO */
+        #controls-panel { width: 280px !important; min-width: 280px !important; max-width: 280px !important; flex-shrink: 0; z-index: 50; }
+        
+        .cmd-item { cursor: pointer; transition: all 0.2s; }
+        .cmd-item:hover { transform: scale(0.95) translateY(-2px); }
+    </style>
+</head>
+<body>
+
+    <!-- ALERTA DE PANTALLA VERTICAL -->
+    <div id="landscape-prompt" class="fixed inset-0 bg-slate-900 text-white flex-col justify-center items-center z-[100] text-center p-8 hidden">
+        <svg class="w-24 h-24 mb-6 animate-pulse text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+        <h1 class="text-3xl font-black mb-2">Please Rotate Your Device</h1>
+        <p class="text-lg text-slate-400">This game requires landscape mode.</p>
+    </div>
+
+    <div id="app-content" class="flex flex-row w-full h-full max-w-[1250px] bg-slate-50 shadow-2xl relative items-center mx-auto">
+        
+       <!-- COLUMNA IZQUIERDA: Zona de Juego -->
+        <div class="flex-1 bg-slate-100 border-r border-slate-200 flex flex-col p-2 relative h-full min-w-0">
+            
+            <!-- Inventario (Flotante a la izquierda) -->
+            <div id="inventory-display" class="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 bg-amber-100 border border-amber-300 text-amber-800 p-1.5 rounded-xl text-xs font-bold hidden flex-col shadow-md uppercase tracking-wide z-50 items-center">
+                <span class="mb-1 text-[9px] opacity-75">INV</span>
+                <div id="inv-item" class="flex flex-col gap-1"></div>
+            </div>
+
+            <!-- Título (Flotante arriba al centro para que NO empuje al tablero) -->
+            <div class="absolute top-2 left-1/2 -translate-x-1/2 z-50 w-max max-w-[90%] text-center pointer-events-none">
+                <h1 id="level-title" class="text-sm md:text-base font-black text-indigo-900 tracking-tight leading-tight bg-white/90 px-4 py-1.5 rounded-full shadow-sm border border-slate-200">Loading...</h1>
+            </div>
+
+            <!-- Contenedor del Tablero -->
+            <div id="game-board-container">
+                <div id="game-board">
+                    <div id="player" class="entity z-40">
+                        <svg viewBox="0 0 100 100" class="w-full h-full drop-shadow-lg">
+                            <style>
+                                @keyframes float-body { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+                                @keyframes track-move { to { stroke-dashoffset: 20; } }
+                                @keyframes blink { 0%, 96%, 100% { transform: scaleY(1); } 98% { transform: scaleY(0.1); } }
+                                .p1-body { animation: float-body 2.5s ease-in-out infinite; transform-origin: center; }
+                                .p1-tracks { stroke-dasharray: 4 4; animation: track-move 0.5s linear infinite reverse; }
+                                .p1-eyes { animation: blink 4s infinite; transform-origin: 50% 30%; }
+                            </style>
+                            <rect x="15" y="10" width="16" height="80" rx="6" fill="#1e293b" stroke="#334155" stroke-width="2"/>
+                            <rect x="69" y="10" width="16" height="80" rx="6" fill="#1e293b" stroke="#334155" stroke-width="2"/>
+                            <line x1="23" y1="15" x2="23" y2="85" stroke="#475569" stroke-width="8" class="p1-tracks"/>
+                            <line x1="77" y1="15" x2="77" y2="85" stroke="#475569" stroke-width="8" class="p1-tracks"/>
+                            <g class="p1-body">
+                                <polygon points="35,22 10,-10 90,-10 65,22" fill="#fef08a" opacity="0.25" class="animate-pulse"/>
+                                <rect x="25" y="30" width="50" height="40" rx="8" fill="#1d4ed8"/>
+                                <rect x="25" y="25" width="50" height="40" rx="8" fill="#3b82f6" stroke="#2563eb" stroke-width="2"/>
+                                <rect x="30" y="20" width="40" height="14" rx="4" fill="#0f172a" stroke="#60a5fa" stroke-width="2"/>
+                                <g class="p1-eyes">
+                                    <circle cx="42" cy="27" r="3.5" fill="#fcd34d" stroke="#b45309" stroke-width="1.5" class="animate-pulse"/>
+                                    <circle cx="58" cy="27" r="3.5" fill="#fcd34d" stroke="#b45309" stroke-width="1.5" class="animate-pulse"/>
+                                </g>
+                                <line x1="40" y1="55" x2="60" y2="55" stroke="#1e3a8a" stroke-width="3" stroke-linecap="round"/>
+                                <line x1="45" y1="60" x2="55" y2="60" stroke="#1e3a8a" stroke-width="3" stroke-linecap="round"/>
+                            </g>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- COLUMNA DERECHA: Consola de Comandos -->
+        <div id="controls-panel" class="w-[280px] bg-white flex flex-col p-3 overflow-y-auto opacity-40 pointer-events-none grayscale transition-all duration-500 h-full shrink-0 z-50 shadow-[-10px_0_20px_rgba(0,0,0,0.05)]">
+            
+            <!-- Objetivo (Único y Definitivo en la parte superior) -->
+            <div id="goal-text" class="mb-3 text-center text-[12px] leading-snug font-bold text-slate-700 bg-indigo-50 p-2.5 rounded-lg border border-indigo-200 shadow-sm shrink-0">
+                Goal: Loading...
+            </div>
+
+            <!-- Pantalla de código -->
+            <div class="flex flex-col gap-2 mb-3 shrink-0">
+                <div id="command-display" class="w-full min-h-[50px] p-2 bg-slate-50 border-2 border-slate-300 rounded-lg flex flex-wrap gap-1 text-xs font-mono shadow-inner items-start content-start"></div>
+            </div>
+
+            <div class="flex gap-2 mb-3 shrink-0">
+                <button onclick="clearCommand()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 rounded-lg font-bold text-slate-700 active:scale-95 transition-transform text-xs">Clear</button>
+                <button onclick="executeCode()" class="flex-1 bg-emerald-500 hover:bg-emerald-600 rounded-lg font-bold text-white shadow-md text-sm active:scale-95 transition-transform">Run Code</button>
+            </div>
+
+            <div id="feedback" class="hidden mb-3 p-2 rounded-lg font-bold text-[10px] flex items-center border-2 shrink-0"></div>
+            
+            <div id="word-bank-container" class="flex flex-wrap gap-1.5 content-start items-start overflow-y-auto flex-1 pb-2"></div>
+        </div>
+
+        <!-- MODALES Y OVERLAYS -->
+        <div id="rpg-dialog-overlay" class="absolute inset-0 bg-black/85 z-[90] flex flex-col justify-center items-center p-6 hidden">
+            <div class="bg-slate-900 border-4 border-slate-400 rounded-xl p-6 text-white font-mono w-full max-w-lg min-h-[200px] flex flex-col relative shadow-2xl">
+                <span class="text-emerald-400 font-bold mb-3 uppercase text-xs tracking-widest flex items-center gap-2"><span class="animate-pulse">🔴</span> System Interface</span>
+                <p id="rpg-text" class="text-sm leading-relaxed text-slate-200 mb-10"></p>
+                <button id="rpg-start-btn" class="absolute bottom-4 right-4 bg-emerald-500 text-white px-6 py-2.5 text-sm font-bold rounded-lg shadow hover:bg-emerald-400 hidden transition-all">Start Mission ▶</button>
+            </div>
+        </div>
+
+        <div id="warning-modal" class="absolute inset-0 bg-slate-900/90 z-[80] hidden flex-col items-center justify-center p-6 backdrop-blur-sm">
+            <div class="bg-white p-8 rounded-3xl max-w-sm w-full text-center shadow-2xl border-4 border-amber-400">
+                <div class="text-6xl mb-4">⚠️</div>
+                <h3 class="text-xl font-black text-slate-800 mb-2">Action Required</h3>
+                <p id="warning-text" class="text-slate-600 font-bold mb-8"></p>
+                <button onclick="document.getElementById('warning-modal').classList.add('hidden')" class="px-6 py-3 bg-amber-400 hover:bg-amber-500 text-slate-900 font-black rounded-xl w-full transition-all shadow-md">Understood</button>
+            </div>
+        </div>
+
+        <!-- MINIJUEGO DE PALABRAS -->
+        <div id="unscramble-modal" class="absolute inset-0 bg-slate-900/95 z-[70] hidden flex-col items-center justify-start overflow-y-auto p-4 backdrop-blur-md">
+            <div class="w-full max-w-lg m-auto flex flex-col items-center py-4">
+                <h2 class="text-2xl font-black text-white mb-1 text-center">ACTION REQUIRED</h2>
+                <p class="text-emerald-400 font-bold mb-4 text-center text-xs uppercase tracking-widest">Unscramble to Interact</p>
+
+                <div id="bomb-timer-container" class="w-full mb-3 bg-slate-800 p-3 rounded-xl border-2 border-red-500 hidden shadow-[0_0_15px_rgba(239,68,68,0.5)]">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-red-400 font-black text-sm animate-pulse">🧨 DEFUSE THE BOMB!</span>
+                        <span id="bomb-countdown" class="text-white font-mono font-bold text-xl"></span>
+                    </div>
+                    <div class="w-full h-3 bg-slate-900 rounded-full overflow-hidden relative">
+                        <div id="bomb-fuse" class="absolute left-0 top-0 h-full bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 transition-all duration-100 ease-linear" style="box-shadow: 0 0 10px #f59e0b; width: 100%;"></div>
+                    </div>
+                </div>
+                
+                <div id="unscramble-dropzone" class="min-h-[50px] w-full bg-slate-800 border-2 border-dashed border-slate-500 rounded-xl p-2 flex flex-wrap gap-2 mb-4 items-center justify-center transition-all"></div>
+                <div id="unscramble-words" class="flex flex-wrap gap-2 w-full justify-center mb-4"></div>
+                <div id="unscramble-feedback" class="text-red-400 font-bold min-h-[20px] mb-4 text-center text-xs"></div>
+                
+                <div class="flex gap-4 w-full max-w-xs shrink-0">
+                    <button onclick="resetUnscramble()" class="flex-1 py-2 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl transition-all">Reset</button>
+                    <button onclick="checkUnscramble()" class="flex-1 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl shadow-lg transition-all border-b-4 border-emerald-700 active:border-b-0 active:translate-y-1">Execute</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="overlay" class="hidden absolute inset-0 bg-white/95 backdrop-blur-sm z-[100] flex flex-col items-center justify-center rounded-lg">
+            <div class="text-6xl mb-4">🏆</div>
+            <h2 class="text-4xl font-black text-emerald-600 mb-2">Well Done!</h2>
+            <p class="text-sm font-bold text-slate-600 mb-8 text-center px-4">Mission completed.</p>
+            <button type="button" onclick="window.location.href='dashboard.html'" class="bg-indigo-600 text-white text-lg font-black py-3 px-8 rounded-xl shadow-xl active:scale-95 transition-all">Next Mission ➔</button>
+        </div>
+
+        <!-- PANEL DE MISIÓN FALLIDA -->
+        <div id="game-over-overlay" class="hidden absolute inset-0 bg-slate-900/95 backdrop-blur-sm z-[100] flex flex-col items-center justify-center rounded-lg border-4 border-red-600">
+            <div class="text-7xl mb-4 animate-bounce">💀</div>
+            <h2 class="text-5xl font-black text-red-500 mb-2">MISSION FAILED</h2>
+            <p id="game-over-reason" class="text-lg font-bold text-slate-300 mb-8 text-center px-4">The ghost caught you!</p>
+            <button type="button" onclick="window.location.reload()" class="bg-red-600 hover:bg-red-500 text-white text-xl font-black py-4 px-10 rounded-xl shadow-[0_6px_0_rgb(153,27,27)] active:translate-y-1.5 active:shadow-none transition-all">TRY AGAIN</button>
+        </div>
+
+    </div>
+
+    <!-- SCRIPT MATEMÁTICO FINAL -->
+    <script>
+        function escalarTablero() {
+            const board = document.getElementById('game-board');
+            if (!board) return;
+            
+            // Calculamos cuánto espacio libre queda restando el panel derecho (280px) y un margen protector (20px)
+            const anchoDisponible = window.innerWidth - 280 - 80;
+            const altoDisponible = window.innerHeight - 120;
+            
+            // Vemos qué tan pequeño debe ser el tablero (540px) para caber en ese espacio
+            const escalaX = anchoDisponible / 540;
+            const escalaY = altoDisponible / 540;
+            
+            // Usamos la escala más restrictiva (máximo 1 para que no se deforme en monitores grandes)
+            const escalaFinal = Math.min(escalaX, escalaY, 1);
+            
+            board.style.transform = `scale(${escalaFinal})`;
+        }
+
+        window.addEventListener('resize', escalarTablero);
+        window.addEventListener('load', escalarTablero);
+        setTimeout(escalarTablero, 100);
+    </script>
+
+    <script src="database.js"></script>
+    <script src="parser.js"></script>
+    <script src="engine.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
